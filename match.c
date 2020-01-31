@@ -136,7 +136,7 @@ int buffer_len;
 int state_binary = 0;
 
 void output_part(char *start, char *ptr) {
-  if (report_count || !use_color) return;
+  if (state_binary || report_count || !use_color) return;
   if (ptr > start)
     fwrite(start, 1, ptr - start, stdout);
   printf("%s", bold);
@@ -145,17 +145,20 @@ void output_part(char *start, char *ptr) {
 }
 
 void output_tail(char *start, int len) {
-  if (report_count || !use_color) return;
+  if (state_binary || report_count || !use_color) return;
   fwrite(start, 1, len, stdout);
 }
 
 void output_full(char *line, int len) {
-  if (report_count || use_color) return;
+  if (state_binary || report_count || use_color) return;
   fwrite(line, 1, len, stdout);
 }
 
-int consume_line(char *line, int line_len) {
-  int match = 0;
+int line_match_count = 0;
+int match_count = 0;
+
+void consume_line(char *line, int line_len) {
+  int line_match = 0;
   char *prev = line;
   char *start = line;
   int len = line_len;
@@ -164,7 +167,8 @@ int consume_line(char *line, int line_len) {
     if (!ptr) break;
     if (!memcmp(ptr, match_param, match_param_len)) {
       output_part(prev, ptr);
-      match += 1;
+      match_count += 1;
+      line_match = 1;
       prev = start = ptr + match_param_len;
       len = line_len - (start - line);
     } else {
@@ -172,52 +176,42 @@ int consume_line(char *line, int line_len) {
       len = line_len - (start - line);
     }
   }
-  if (match) output_full(line, line_len);
-  if (match) output_tail(prev, line_len - (prev - line));
-  return match;
-}
-
-int consume_binary() {
-  if (buffer_pos < match_param_len) return 0;
-  char *ptr = memchr(buffer, match_param[0], buffer_pos);
-  if (ptr && ptr - buffer + match_param_len <= buffer_pos) {
-    if (!memcmp(ptr, match_param, match_param_len)) {
-      buffer_pos = 0;
-      return 1;
-    }
+  if (line_match) {
+    output_full(line, line_len);
+    output_tail(prev, line_len - (prev - line));
+    line_match_count++;
   }
-  memmove(buffer, buffer + buffer_pos - match_param_len + 1,
-          match_param_len - 1);
-  buffer_pos = match_param_len - 1;
-  return 0;
 }
 
-int consume(int force) {
+void consume_binary() {
+  if (buffer_pos < match_param_len) return;
+  consume_line(buffer, buffer_pos);
+  buffer_pos = match_param_len - 1;
+}
+
+void consume(int force) {
   if (state_binary) {
-    return consume_binary();
+    consume_binary();
+    return;
   }
   char *ptr = memchr(buffer, '\n', buffer_pos);
   if (ptr) {
-    int match = 0;
     char *line = buffer;
     while (ptr) {
       int len = ptr - line + 1;
-      match += consume_line(line, len);
+      consume_line(line, len);
       line += len;
       ptr = memchr(line, '\n', buffer_pos - (line - buffer));
     }
     memmove(buffer, line, buffer_pos - (line - buffer));
     buffer_pos -= (line - buffer);
-    return match;
+    return;
   }
   if (force) {
     state_binary = 1;
-    return consume_binary();
+    consume_binary();
   }
-  return 0;
 }
-
-int match_count = 0;
 
 void run_fd(int fd) {
   while (1) {
@@ -226,7 +220,7 @@ void run_fd(int fd) {
       errno_printf("cannot read");
     if (!len) break;
     buffer_pos += len;
-    match_count += consume(buffer_pos == buffer_len);
+    consume(buffer_pos == buffer_len);
   }
   if (!state_binary && buffer_pos)
     consume_line(buffer, buffer_pos);
@@ -262,6 +256,7 @@ int main(int argc, char **argv) {
   }
   if (!state_binary && report_count) {
     info_printf("%d matches\n", match_count);
+    info_printf("%d lines match\n", line_match_count);
   }
   return !match_count;
 }
