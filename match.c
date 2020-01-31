@@ -184,10 +184,16 @@ int consume(int force) {
   }
   char *ptr = memchr(buffer, '\n', buffer_pos);
   if (ptr) {
-    int offset = ptr - buffer + 1;
-    int match = consume_line(buffer, offset);
-    memmove(buffer, ptr, buffer_pos - offset);
-    buffer_pos -= offset;
+    int match = 0;
+    char *line = buffer;
+    while (ptr) {
+      int len = ptr - line + 1;
+      match += consume_line(line, len);
+      line += len;
+      ptr = memchr(line, '\n', buffer_pos - (line - buffer));
+    }
+    memmove(buffer, line, buffer_pos - (line - buffer));
+    buffer_pos -= (line - buffer);
     return match;
   }
   if (force) {
@@ -204,10 +210,12 @@ void run_fd(int fd) {
     int len = read(fd, buffer + buffer_pos, buffer_len - buffer_pos);
     if (len == -1)
       errno_printf("cannot read");
-    if (!len) return;
+    if (!len) break;
     buffer_pos += len;
     match_count += consume(buffer_pos == buffer_len);
   }
+  if (!state_binary && buffer_pos)
+    consume_line(buffer, buffer_pos);
 }
 
 void run(int index, int argc, char **argv) {
