@@ -8,6 +8,16 @@
 #include <string.h>
 #include <unistd.h>
 
+char *help_text =
+  "match [-chr] [-m <columns>] [--] <pattern> <file>*\n"
+  "Searches standard input or named files for exact match of pattern.\n"
+  "Understands only bytes, assumes binary if and only if maximum line length\n"
+  "is exceeded.\n"
+  "  -c            Report only number of matches\n"
+  "  -h            Print this help text\n"
+  "  -r            Use color codes in output\n"
+  "  -m <columns>  Handle maximum line length of <columns> (default: 64k)\n";
+
 int use_color = 0;
 
 char *foreground_red = "\033[31m";
@@ -91,17 +101,21 @@ void parse_options(int argc, char **argv) {
     static struct option long_options[] =
       {
        {"count", no_argument, 0, 'c'},
+       {"help", no_argument, 0, 'h'},
        {"max-columns", required_argument, 0, 'm'},
        {"color", no_argument, 0, 'r'},
        {}
       };
     int option_index = 0;
-    int c = getopt_long(argc, argv, "cm:r", long_options, &option_index);
+    int c = getopt_long(argc, argv, "chm:r", long_options, &option_index);
     if (c == -1) break;
     switch (c) {
     case 'c':
       report_count = 1;
       break;
+    case 'h':
+      fprintf(stderr, "%s", help_text);
+      exit(0);
     case 'm':
       max_columns = str2long(optarg);
       break;
