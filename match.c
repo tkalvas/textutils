@@ -253,12 +253,12 @@ void run(int index, int argc, char **argv) {
 int main(int argc, char **argv) {
   parse_options(argc, argv);
   run(optind, argc, argv);
-  if (state_binary && match_count) {
+  if (state_binary && match_count && !report_count) {
     info_printf("binary file matches\n");
   }
-  if (!state_binary && report_count) {
+  if (report_count) {
     info_printf("%d matches\n", match_count);
-    info_printf("%d lines match\n", line_match_count);
+    if (!state_binary) info_printf("%d lines match\n", line_match_count);
   }
   return !match_count;
 }
