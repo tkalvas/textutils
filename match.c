@@ -186,6 +186,8 @@ void consume_line(char *line, int line_len) {
 void consume_binary() {
   if (buffer_pos < match_param_len) return;
   consume_line(buffer, buffer_pos);
+  memmove(buffer, buffer + buffer_pos - match_param_len + 1,
+          match_param_len - 1);
   buffer_pos = match_param_len - 1;
 }
 
