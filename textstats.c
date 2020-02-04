@@ -132,12 +132,15 @@ int umin;
 int umax;
 int u;
 
+int byte_count = 0;
+
 int utf8_missing_continuation_count = 0;
 int utf8_orphan_continuation_count = 0;
 int utf8_overlong_count = 0;
 int utf8_upper_control_count = 0;
 int utf8_illegal_count = 0;
 
+int last_byte_nl = 0;
 int last_byte_cr = 0;
 int last_byte_whitespace = 0;
 
@@ -152,6 +155,8 @@ int latin1_finnish_count = 0;
 
 void consume(int end) {
   for (int i = 0; i < buffer_pos; i++) {
+    byte_count++;
+
     int ch = (int)buffer[i] & 255;
 
     if (ulen > 1 && ((ch & 0xc0) != 0x80)) {
@@ -179,10 +184,12 @@ void consume(int end) {
       umin = 0x80;
       umax = 0x7ff;
     } else if (!(ch & 0x10)) { // leading 3
+      u = ch & 0xf;
       ulen = 3;
       umin = 0x800;
       umax = 0xffff;
     } else if (ch < 0xf5) { // leading 4
+      u = ch & 0x7;
       ulen = 4;
       umin = 0x10000;
       umax = 0x10ffff;
@@ -190,6 +197,8 @@ void consume(int end) {
       utf8_illegal_count++;
       ulen = 1;
     }
+
+    last_byte_nl = ch == '\n';
 
     if (ch == '\n') {
       if (last_byte_cr)
@@ -251,9 +260,13 @@ void run(int index, int argc, char **argv) {
 int main(int argc, char **argv) {
   parse_options(argc, argv);
   run(optind, argc, argv);
+  if (byte_count && !last_byte_nl)
+    line_count++;
   info_printf("%d lines\n", line_count);
   if (windows_line_count)
     warn_printf("%d windows line endings\n", windows_line_count);
+  if (byte_count && !last_byte_nl)
+    warn_printf("non-empty file does not end in newline\n");
   if (null_char_count)
     err_printf("%d null characters\n", null_char_count);
   if (control_count)

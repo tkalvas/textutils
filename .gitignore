@@ -1,6 +1,8 @@
 # Executables
 match
 textstats
+anno
+annofilter
 
 # Prerequisites
 *.d
