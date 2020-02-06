@@ -228,7 +228,7 @@ void consume() {
         bad_byte(ENCODING, i);
         continue;
       }
-      int u = ((ch & 0xf) << 18) | ((ch1 & 0x3f) << 12) | ((ch2 & 0x3f) << 6) |
+      int u = ((ch & 7) << 18) | ((ch1 & 0x3f) << 12) | ((ch2 & 0x3f) << 6) |
         (ch3 & 0x3f);
       if (u < 0x10000) bad_bytes(4, OVERLONG, i);
     } else { // illegal 0xf5-0xff
