@@ -8,12 +8,13 @@
 
 int main(int argc, char *argv[]) {
   setenv("LESSOPEN", "||-annofilter %s", 1);
-  char **args = malloc((argc + 1) * sizeof(char*));
+  char **args = malloc((argc + 2) * sizeof(char*));
   args[0] = "less";
   args[1] = "-R";
   for (int i = 1; i < argc; i++) {
     args[i + 1] = argv[i];
   }
+  args[argc + 1] = 0;
   execvp("less", args);
   fprintf(stderr, "execvp failed: %s (%d)\n", strerror(errno), errno);
 }
