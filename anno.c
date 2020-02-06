@@ -1,6 +1,9 @@
 #define _XOPEN_SOURCE 700
 
+#include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 int main(int argc, char *argv[]) {
@@ -12,5 +15,5 @@ int main(int argc, char *argv[]) {
     args[i + 1] = argv[i];
   }
   execvp("less", args);
-  // LESSOPEN="||annofilter %s" less -R ... 
+  fprintf(stderr, "execvp failed: %s (%d)\n", strerror(errno), errno);
 }
