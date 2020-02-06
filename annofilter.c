@@ -269,9 +269,14 @@ void run(int index, int argc, char **argv) {
     run_fd(0);
   } else {
     while (index < argc) {
-      int fd = file4read(argv[index++]);
-      run_fd(fd);
-      close(fd);
+      char *name = argv[index++];
+      if (!strcmp(name, "-")) {
+        run_fd(0);
+      } else {
+        int fd = file4read(name);
+        run_fd(fd);
+        close(fd);
+      }
     }
   }
 }
