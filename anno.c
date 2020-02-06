@@ -17,4 +17,5 @@ int main(int argc, char *argv[]) {
   args[argc + 1] = 0;
   execvp("less", args);
   fprintf(stderr, "execvp failed: %s (%d)\n", strerror(errno), errno);
+  return errno;
 }
